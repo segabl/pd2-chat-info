@@ -1,14 +1,18 @@
 {
   "name" : "Chat Info",
-  "description" : "Gives information about wether a player using the same mod is typing something in chat",
-  "author" : "Shiny Hoppip",
+  "description" : "Shows if a player using the same mod is typing something in chat",
+  "author" : "Hoppip",
   "blt_version" : 2,
   "color" : "0.043 0.808 0.6",
   "image" : "mod.png",
-  "version" : "1.5",
-  "updates" : [ { "identifier" : "chat_info" } ],
-  "dependencies" : [ "delayedcallsfix" ],
+  "version" : "1.6",
+  "updates" : [
+    {
+      "identifier" : "pd2-chat-info",
+      "host": { "meta": "http://updates.hoppip.at/pd2-chat-info" }
+    }
+  ],
   "hooks" : [
-    { "hook_id" : "lib/managers/chatmanager", "script_path" : "chatmanager.lua" }
+    { "hook_id" : "lib/managers/chatmanager", "script_path" : "mod.lua" }
   ]
 }

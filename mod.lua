@@ -1,52 +1,6 @@
-local receive_message_by_peer_original = ChatManager.receive_message_by_peer
-function ChatManager:receive_message_by_peer(channel_id, peer, message)
-  receive_message_by_peer_original(self, channel_id, peer, message)
-  if tonumber(channel_id) == 1 then
-    peer._last_typing_info_t = nil
-  end
-end
-
-local init_original = ChatGui.init
-function ChatGui:init(...)
-  init_original(self, ...)
-  if LuaNetworking:IsMultiplayer() then
-    self:_create_info_panel()
-    self:_layout_info_panel()
-    self:update_info_text()
-  end
-end
-
 function ChatGui:set_leftbottom(left, bottom)
   self._panel:set_left(left)
   self._panel:set_bottom(self._panel:parent():h() - bottom + 24)
-end
-
-function ChatGui:_create_info_panel()
-  self._panel:text({
-    name = "info_text",
-    text = "Dallas, Wolf and Chains are typing...",
-    font = tweak_data.menu.pd2_small_font,
-    font_size = tweak_data.menu.pd2_small_font_size,
-    x = 0,
-    y = 0,
-    w = self._panel:w(),
-    h = 24,
-    color = Color.white,
-    alpha = 0.75,
-    layer = 1
-  })
-end
-
-local _layout_input_panel_original = ChatGui._layout_input_panel
-function ChatGui:_layout_input_panel()
-  _layout_input_panel_original(self)
-  self._input_panel:set_y(self._input_panel:parent():h() - self._input_panel:h() - 24)
-end
-
-function ChatGui:_layout_info_panel()
-  local text = self._panel:child("info_text")
-  text:set_left(self._panel:left() + self._input_panel:left() + self._input_panel:child("input_text"):left())
-  text:set_y(text:parent():h() - text:h())
 end
 
 function ChatGui:update_info_text()
@@ -80,15 +34,38 @@ function ChatGui:update_info_text()
   for i, range in ipairs(ranges) do
     info_panel_text:set_range_color(range.from, range.to, tweak_data.chat_colors[range.id])
   end
-
-  DelayedCallsFix:Add("chat_info_update_info_text", 0.1, function()
-    self:update_info_text()
-  end)
 end
 
-local key_press_original = ChatGui.key_press
-function ChatGui:key_press(o, k)
-  key_press_original(self, o, k)
+Hooks:PostHook(ChatManager, "receive_message_by_peer", "receive_message_by_peer_chat_info", function (self, channel_id, peer)
+  if tonumber(channel_id) == 1 then
+    peer._last_typing_info_t = nil
+  end
+end)
+
+Hooks:PostHook(ChatGui, "init", "init_chat_info", function (self)
+  self._chat_info_text = self._panel:text({
+    name = "info_text",
+    text = "",
+    font = tweak_data.menu.pd2_small_font,
+    font_size = tweak_data.menu.pd2_small_font_size,
+    x = 0,
+    y = 0,
+    w = self._panel:w(),
+    h = 24,
+    color = Color.white,
+    alpha = 0.75,
+    layer = 1
+  })
+  self._chat_info_text:set_left(self._panel:left() + self._input_panel:left() + self._input_panel:child("input_text"):left())
+  self._chat_info_text:set_y(self._panel:h() - self._chat_info_text:h())
+  self._chat_info_text = text
+end)
+
+Hooks:PostHook(ChatGui, "_layout_input_panel", "_layout_input_panel_chat_info", function (self)
+  self._input_panel:set_y(self._input_panel:parent():h() - self._input_panel:h() - 24)
+end)
+
+Hooks:PostHook(ChatGui, "key_press", "key_press_chat_info", function (self, o, k)
   local t = TimerManager:game():time()
   local valid_key = k ~= Idstring("enter") and k ~= Idstring("esc")
   if valid_key and (not self._last_press_t or t > self._last_press_t + 2) then
@@ -97,13 +74,15 @@ function ChatGui:key_press(o, k)
   elseif not valid_key then
     self._last_press_t = nil
   end
-end
+end)
 
-local close_original = ChatGui.close
-function ChatGui:close(...)
-  DelayedCallsFix:Remove("chat_info_update_info_text")
-  close_original(self, ...)
-end
+Hooks:PostHook(MenuComponentManager, "update", "update_chat_info", function (self, t)
+  if not self._game_chat_gui or self._last_chat_info_update_t and self._last_chat_info_update_t + 0.1 < t then
+    return
+  end
+  self._game_chat_gui:update_info_text()
+  self._last_chat_info_update_t = t
+end)
 
 Hooks:Add("NetworkReceivedData", "NetworkReceivedDataTypingInfo", function(sender, id, data)
   local peer = LuaNetworking:GetPeers()[sender]
