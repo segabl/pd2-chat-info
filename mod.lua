@@ -3,7 +3,7 @@ function ChatGui:set_leftbottom(left, bottom)
   self._panel:set_bottom(self._panel:parent():h() - bottom + 24)
 end
 
-function ChatGui:update_info_text()
+function ChatGui:update_info_text(t)
   local info_panel_text = self._panel:child("info_text")
   local text = ""
   local amount = 0
@@ -19,15 +19,13 @@ function ChatGui:update_info_text()
   end
   
   if amount > 0 then
-    self._amount_dots = self._amount_dots and (self._amount_dots + 0.25) % 4 or 0
-    text = text .. " " .. (amount > 1 and "are" or "is") .. " typing" .. string.rep(".", math.floor(self._amount_dots))
+    local amount_dots = math.floor((t * 2) % 4)
+    text = text .. " " .. (amount > 1 and "are" or "is") .. " typing" .. string.rep(".", amount_dots)
     if amount > 1 then
       text = text:gsub("(.*),", "%1 and")
       ranges[#ranges].from = ranges[#ranges].from + 3
       ranges[#ranges].to = ranges[#ranges].to + 3
     end
-  else
-    self._amount_dots = 0
   end
 
   info_panel_text:set_text(text)
@@ -80,8 +78,8 @@ Hooks:PostHook(MenuComponentManager, "update", "update_chat_info", function (sel
   if not self._game_chat_gui or self._last_chat_info_update_t and self._last_chat_info_update_t + 0.1 < t then
     return
   end
-  self._game_chat_gui:update_info_text()
   self._last_chat_info_update_t = t
+  self._game_chat_gui:update_info_text(t)
 end)
 
 Hooks:Add("NetworkReceivedData", "NetworkReceivedDataTypingInfo", function(sender, id, data)
