@@ -1,19 +1,17 @@
 {
-  "name" : "Chat Info",
-  "description" : "Shows if a player using the same mod is typing something in chat",
-  "author" : "Hoppip",
-  "contact" : "Hoppip#1630",
-  "blt_version" : 2,
-  "color" : "0.043 0.808 0.6",
-  "image" : "mod.png",
-  "version" : "1.6",
-  "updates" : [
-    {
-      "identifier" : "pd2-chat-info",
-      "host": { "meta": "http://updates.hoppip.at/pd2-chat-info" }
-    }
-  ],
-  "hooks" : [
-    { "hook_id" : "lib/managers/chatmanager", "script_path" : "mod.lua" }
-  ]
+	"name" : "Chat Info",
+	"description" : "Shows if a player using the same mod is typing something in chat",
+	"author" : "Hoppip",
+	"contact" : "Hoppip#1630",
+	"blt_version" : 2,
+	"color" : "0.043 0.808 0.6",
+	"image" : "mod.png",
+	"version" : "1.6",
+	"updates" : [{
+		"identifier" : "pd2-chat-info",
+		"host": { "meta": "https://updates.hoppip.at/pd2-chat-info" }
+	}],
+	"hooks" : [
+		{ "hook_id" : "lib/managers/chatmanager", "script_path" : "mod.lua" }
+	]
 }
