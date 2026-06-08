@@ -1,5 +1,5 @@
 if not ChatTypingInfo then
-	dofile(ModPath.."lua/chat_info_base.lua")
+	dofile(ModPath .. "mod.lua")
 end
 
 -- in game chat stuff
@@ -17,9 +17,9 @@ end)
 -- allow for chat adjusting mods to be compatible with this mod by allowing overrides on chat on-screen location, font size etc
 -- if you want to add support for this mod you can create a post hook for this function to override appropraite parmaeters, just make sure that your mod's priority is lower then 999
 function HUDChat:SetupIngameTypingTextPanelProperties()
-	
+
 	if not HUDChat then return end -- idek, just keep it
-	
+
 	ChatTypingInfo.text_panel_game = {
 		w_override = nil,
 		h_override = nil,
@@ -31,14 +31,14 @@ function HUDChat:SetupIngameTypingTextPanelProperties()
 		y_shift = 0,
 		font_size_override = nil
 	}
-	
+
 	if ChatTypingInfo.settings.in_game_use_alignment_preset then
 		-- vanilla chat's magical number offset
 		ChatTypingInfo.text_panel_game.y_shift = -112
-		
+
 		-- VHUD SUPPORT -- similary can add any other chat adjusting mod
 		if VHUDPlus then
-			if VHUDPlus:getSetting({"HUDChat", "ENABLED"}, true) then
+			if VHUDPlus:getSetting({ "HUDChat", "ENABLED" }, true) then
 				if HUDChat.LINE_HEIGHT and HUDChat.MAX_OUTPUT_LINES then
 					ChatTypingInfo.text_panel_game.h_override = HUDChat.LINE_HEIGHT * (HUDChat.MAX_OUTPUT_LINES + 1)
 				end
@@ -48,11 +48,11 @@ function HUDChat:SetupIngameTypingTextPanelProperties()
 				if HUDChat.LINE_HEIGHT then
 					ChatTypingInfo.text_panel_game.font_size_override = HUDChat.LINE_HEIGHT * 0.95
 				end
-				ChatTypingInfo.text_panel_game.x_shift = VHUDPlus:getSetting({"HUDChat", "X_POS_FIX"}, 0)
-				ChatTypingInfo.text_panel_game.y_shift = 0 - VHUDPlus:getSetting({"HUDChat", "Y_POS"}, 112)
+				ChatTypingInfo.text_panel_game.x_shift = VHUDPlus:getSetting({ "HUDChat", "X_POS_FIX" }, 0)
+				ChatTypingInfo.text_panel_game.y_shift = 0 - VHUDPlus:getSetting({ "HUDChat", "Y_POS" }, 112)
 			end
 		end
-		
+
 		if VoidUI and VoidUI.options.enable_chat then
 			ChatTypingInfo.text_panel_game.y_override = self._panel:parent():h() / 2 + 140
 		end
@@ -63,18 +63,18 @@ function HUDChat:SetupIngameTypingTextPanelProperties()
 		ChatTypingInfo.text_panel_game.y_override = ChatTypingInfo.settings.in_game_alignment_y
 		ChatTypingInfo.text_panel_game.font_size_override = ChatTypingInfo.settings.in_game_font_size
 	end
-	
+
 end
 
 -- only called if user is adjusting settings in the mod's menu, responsible for text panel's visuals
 function HUDChat:UpdateIngameTypingTextPanel()
-	
+
 	-- reset properties
 	self:SetupIngameTypingTextPanelProperties()
-	
+
 	local state = ChatTypingInfo:GetGameState()
 	if state == "in_match" then
-		
+
 		local chat_window = managers.hud._hud_chat_ingame
 		if chat_window then
 			local screen_panel = chat_window._panel:parent()
@@ -91,18 +91,18 @@ function HUDChat:UpdateIngameTypingTextPanel()
 				panel:set_font_size(tpg.font_size_override or tweak_data.menu.pd2_small_font_size)
 			end
 		end
-		
+
 	end
 end
 
 -- update panel's text
 function HUDChat:UpdateIngameTypingInfoText()
-	
+
 	local chat_window = managers.hud._hud_chat_ingame
 	if chat_window then
 		local screen_panel = chat_window._panel:parent()
 		local tpg = ChatTypingInfo.text_panel_game
-		
+
 		-- create our info panel with overrides
 		if not screen_panel:child("typing_alert") then
 			local typing_alert = screen_panel:text({
@@ -127,7 +127,7 @@ function HUDChat:UpdateIngameTypingInfoText()
 			local text, ranges = ChatTypingInfo:GetTypingWarningText()
 			local info_panel_text = screen_panel:child("typing_alert")
 			info_panel_text:set_text(text)
-			
+
 			if next(ranges) ~= nil then
 				for i, range in ipairs(ranges) do
 					info_panel_text:set_range_color(range.from, range.to, tweak_data.chat_colors[range.id])
@@ -135,5 +135,5 @@ function HUDChat:UpdateIngameTypingInfoText()
 			end
 		end
 	end
-	
+
 end

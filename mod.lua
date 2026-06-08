@@ -5,7 +5,7 @@ end
 
 _G.ChatTypingInfo = {
 	_path = ModPath,
-	_save_path = SavePath.."ChatTypingInfo_save.txt",
+	_save_path = SavePath .. "ChatTypingInfo_save.txt",
 	settings = {
 		menus_info_enabled = true,
 		menus_alpha = 0.8,
@@ -26,25 +26,18 @@ _G.ChatTypingInfo = {
 	}
 }
 
--- user settings
 function ChatTypingInfo:Save()
-	local file = io.open(ChatTypingInfo._save_path, 'w+')
-	if file then
-		file:write(json.encode(ChatTypingInfo.settings))
-		file:close()
-	end
+	io.save_as_json(ChatTypingInfo.settings, ChatTypingInfo._save_path)
 end
+
 function ChatTypingInfo:Load()
-	local file = io.open(ChatTypingInfo._save_path, 'r')
-	if file then
-		for i, v in pairs(json.decode(file:read('*all')) or {}) do
-			ChatTypingInfo.settings[i] = v
-		end
-		file:close()
+	local settings = io.file_is_readable(ChatTypingInfo._save_path) and io.load_as_json(ChatTypingInfo._save_path) or {}
+	for k, v in pairs(settings) do
+		ChatTypingInfo.settings[k] = v
 	end
 end
+
 ChatTypingInfo:Load()
-ChatTypingInfo:Save()
 
 function ChatTypingInfo:GetGameState()
 	if not Utils:IsInGameState() then
@@ -69,7 +62,7 @@ function ChatTypingInfo:GetTypingWarningText()
 	local t = TimerManager:game():time()
 	local ranges = {}
 	local peers = managers.network and managers.network:session() and managers.network:session():all_peers() -- LuaNetworking:GetPeers() is safer, but doesn't grab our own player, and we need our own player when we configure panels in mod options
-	
+
 	if peers then
 		for _, peer in pairs(peers) do
 			if peer and peer._last_typing_info_t and t < peer._last_typing_info_t + 4 then
@@ -79,7 +72,7 @@ function ChatTypingInfo:GetTypingWarningText()
 				amount = amount + 1
 			end
 		end
-		
+
 		if amount > 0 then
 			local amount_dots = math.floor((t * 2) % 4)
 			local part_1_plur = managers.localization:text("ChatTypingInfo_xIsTyping_message_part_1_plural")
@@ -94,7 +87,7 @@ function ChatTypingInfo:GetTypingWarningText()
 			end
 		end
 	end
-	
+
 	return text, ranges
 end
 
@@ -119,15 +112,15 @@ Hooks:Add("NetworkReceivedData", "NetworkReceivedData_ChatTypingInfo", function(
 end)
 
 -- updater which is ran to check if text needs to be adjusted
-Hooks:PostHook(MenuComponentManager, "update", "ChatTypingInfo_updater", function (self, t)
-	
+Hooks:PostHook(MenuComponentManager, "update", "ChatTypingInfo_updater", function(self, t)
+
 	-- refresh rate
 	if self._last_chat_typing_info_update_t and self._last_chat_typing_info_update_t + 0.1 < t then
 		return
 	else
 		self._last_chat_typing_info_update_t = t
 	end
-	
+
 	local state = ChatTypingInfo:GetGameState()
 	if state == "menus" or state == "pre_game_lobby" then
 		if not self._game_chat_gui then

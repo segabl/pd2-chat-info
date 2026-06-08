@@ -1,5 +1,5 @@
 if not ChatTypingInfo then
-	dofile(ModPath.."lua/chat_info_base.lua")
+	dofile(ModPath .. "mod.lua")
 end
 
 -- menu itself
@@ -7,18 +7,18 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 	local menu_id = "ChatTypingInfo"
 
 	MenuHelper:NewMenu(menu_id)
-	
+
 	MenuCallbackHandler.ChatTypingInfo_save = function(this, item)
 		ChatTypingInfo:Save()
 	end
-	
+
 	MenuCallbackHandler.ChatTypingInfo_donothing = function(this, item)
 		-- warm, primordial blackness
 	end
-	
+
 	local menu_slider_alpha, menu_alignment_preset, menu_slider_w, menu_slider_h, menu_slider_x, menu_slider_y, menu_slider_font
 	local game_slider_alpha, game_alignment_preset, game_slider_w, game_slider_h, game_slider_x, game_slider_y, game_slider_font
-	
+
 	MenuCallbackHandler.ChatTypingInfo_slider_menu = function(this, item)
 		ChatTypingInfo.settings[string.sub(item:name(), 16, -1)] = item:value() -- cursed, but im too lazy to rename all the toggle/slider menu items
 		ChatTypingInfo:Save()
@@ -28,7 +28,7 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 			managers.network:session():local_peer()._last_typing_info_t = TimerManager:game():time() -- preview the text while customizing it
 		end
 	end
-	
+
 	MenuCallbackHandler.ChatTypingInfo_toggle_menu = function(this, item)
 		local param = string.sub(item:name(), 16, -1)
 		ChatTypingInfo.settings[param] = item:value() == "on"
@@ -59,22 +59,26 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 			update_custom_options(not ChatTypingInfo.settings.menus_use_alignment_preset)
 		end
 	end
-	
+
 	MenuCallbackHandler.ChatTypingInfo_slider_ingame = function(this, item)
 		ChatTypingInfo.settings[string.sub(item:name(), 16, -1)] = item:value()
 		ChatTypingInfo:Save()
-		HUDChat:UpdateIngameTypingTextPanel()
+		if managers.hud and managers.hud._hud_chat_ingame then
+			managers.hud._hud_chat_ingame:UpdateIngameTypingTextPanel()
+		end
 		local state = ChatTypingInfo:GetGameState()
 		if state == "in_match" and managers.network and managers.network:session() and managers.network:session():local_peer() then
 			managers.network:session():local_peer()._last_typing_info_t = TimerManager:game():time()
 		end
 	end
-	
+
 	MenuCallbackHandler.ChatTypingInfo_toggle_ingame = function(this, item)
 		local param = string.sub(item:name(), 16, -1)
 		ChatTypingInfo.settings[param] = item:value() == "on"
 		ChatTypingInfo:Save()
-		HUDChat:UpdateIngameTypingTextPanel()
+		if managers.hud and managers.hud._hud_chat_ingame then
+			managers.hud._hud_chat_ingame:UpdateIngameTypingTextPanel()
+		end
 		local state = ChatTypingInfo:GetGameState()
 		if state == "in_match" and managers.network and managers.network:session() and managers.network:session():local_peer() then
 			managers.network:session():local_peer()._last_typing_info_t = TimerManager:game():time()
@@ -109,7 +113,7 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		menu_id = menu_id,
 		priority = 100
 	})
-	
+
 	menu_slider_alpha = MenuHelper:AddSlider({
 		id = "ChatTypingInfo_menus_alpha",
 		title = "ChatTypingInfo_menus_alpha",
@@ -126,7 +130,7 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		menu_id = menu_id,
 		priority = 99
 	})
-	
+
 	menu_alignment_preset = MenuHelper:AddToggle({
 		id = "ChatTypingInfo_menus_use_alignment_preset",
 		title = "ChatTypingInfo_menus_use_alignment_preset",
@@ -137,7 +141,7 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		menu_id = menu_id,
 		priority = 98
 	})
-	
+
 	local disabled_menu_extras = ChatTypingInfo.settings.menus_use_alignment_preset
 	if not ChatTypingInfo.settings.menus_info_enabled then
 		disabled_menu_extras = true
@@ -158,7 +162,7 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		menu_id = menu_id,
 		priority = 97
 	})
-	
+
 	menu_slider_h = MenuHelper:AddSlider({
 		id = "ChatTypingInfo_menus_alignment_h",
 		title = "ChatTypingInfo_menus_alignment_h",
@@ -175,7 +179,7 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		menu_id = menu_id,
 		priority = 96
 	})
-	
+
 	menu_slider_x = MenuHelper:AddSlider({
 		id = "ChatTypingInfo_menus_alignment_x",
 		title = "ChatTypingInfo_menus_alignment_x",
@@ -192,7 +196,7 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		menu_id = menu_id,
 		priority = 95
 	})
-	
+
 	menu_slider_y = MenuHelper:AddSlider({
 		id = "ChatTypingInfo_menus_alignment_y",
 		title = "ChatTypingInfo_menus_alignment_y",
@@ -209,7 +213,7 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		menu_id = menu_id,
 		priority = 94
 	})
-	
+
 	menu_slider_font = MenuHelper:AddSlider({
 		id = "ChatTypingInfo_menus_font_size",
 		title = "ChatTypingInfo_menus_font_size",
@@ -226,14 +230,14 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		menu_id = menu_id,
 		priority = 93
 	})
-	
+
 	MenuHelper:AddDivider({
 		id = "ChatTypingInfo_divider_1",
 		size = 16,
 		menu_id = menu_id,
 		priority = 92
 	})
-	
+
 	MenuHelper:AddToggle({
 		id = "ChatTypingInfo_in_game_info_enabled",
 		title = "ChatTypingInfo_in_game_info_enabled",
@@ -243,7 +247,7 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		menu_id = menu_id,
 		priority = 91
 	})
-	
+
 	game_slider_alpha = MenuHelper:AddSlider({
 		id = "ChatTypingInfo_in_game_alpha",
 		title = "ChatTypingInfo_in_game_alpha",
@@ -260,7 +264,7 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		menu_id = menu_id,
 		priority = 90
 	})
-	
+
 	game_alignment_preset = MenuHelper:AddToggle({
 		id = "ChatTypingInfo_in_game_use_alignment_preset",
 		title = "ChatTypingInfo_in_game_use_alignment_preset",
@@ -271,7 +275,7 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		menu_id = menu_id,
 		priority = 89
 	})
-	
+
 	local disabled_ingame_extras = ChatTypingInfo.settings.in_game_use_alignment_preset
 	if not ChatTypingInfo.settings.in_game_info_enabled then
 		disabled_ingame_extras = true
@@ -292,7 +296,7 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		menu_id = menu_id,
 		priority = 88
 	})
-	
+
 	game_slider_h = MenuHelper:AddSlider({
 		id = "ChatTypingInfo_in_game_alignment_h",
 		title = "ChatTypingInfo_in_game_alignment_h",
@@ -309,7 +313,7 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		menu_id = menu_id,
 		priority = 87
 	})
-	
+
 	game_slider_x = MenuHelper:AddSlider({
 		id = "ChatTypingInfo_in_game_alignment_x",
 		title = "ChatTypingInfo_in_game_alignment_x",
@@ -326,7 +330,7 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		menu_id = menu_id,
 		priority = 86
 	})
-	
+
 	game_slider_y = MenuHelper:AddSlider({
 		id = "ChatTypingInfo_in_game_alignment_y",
 		title = "ChatTypingInfo_in_game_alignment_y",
@@ -343,7 +347,7 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		menu_id = menu_id,
 		priority = 85
 	})
-	
+
 	game_slider_font = MenuHelper:AddSlider({
 		id = "ChatTypingInfo_in_game_font_size",
 		title = "ChatTypingInfo_in_game_font_size",
@@ -366,11 +370,10 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 end)
 
 -- locs
-Hooks:Add('LocalizationManagerPostInit', 'ChatTypingInfo_option_loc', function(loc)
+Hooks:Add("LocalizationManagerPostInit", "ChatTypingInfo_option_loc", function(loc)
 	local chosen_language = BLT.Localization:get_language().language
-	if chosen_language == "ru" then
-		loc:load_localization_file(ChatTypingInfo._path .. 'lang/ru.json', false)
-	else
-		loc:load_localization_file(ChatTypingInfo._path .. 'lang/en.json', false)
+	if not io.file_is_readable(ChatTypingInfo._path .. "loc/" .. chosen_language .. ".json") then
+		chosen_language = "en"
 	end
+	loc:load_localization_file(ChatTypingInfo._path .. "loc/" .. chosen_language .. ".json")
 end)

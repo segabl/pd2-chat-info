@@ -1,5 +1,5 @@
 {
-	"ChatTypingInfo_title": "Chat Typing Info",
+	"ChatTypingInfo_title": "Chat Info",
 	"ChatTypingInfo_blank": "",
 	
 	"ChatTypingInfo_menus_info_enabled": "Enable in Lobby",
@@ -39,5 +39,5 @@
 	"ChatTypingInfo_xIsTyping_message_part_1_plural": "are",
 	"ChatTypingInfo_xIsTyping_message_part_1_singular": "is",
 	"ChatTypingInfo_xIsTyping_message_part_2_plural": " typing",
-	"ChatTypingInfo_xIsTyping_message_part_2_singular": " typing",
+	"ChatTypingInfo_xIsTyping_message_part_2_singular": " typing"
 }
