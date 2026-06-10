@@ -1,90 +1,126 @@
-function ChatGui:set_leftbottom(left, bottom)
-	self._panel:set_left(left)
-	self._panel:set_bottom(self._panel:parent():h() - bottom + 24)
+-- setup
+if ChatTypingInfo then
+	return
 end
 
-function ChatGui:update_info_text(t)
-	local info_panel_text = self._panel:child("info_text")
+_G.ChatTypingInfo = {
+	_path = ModPath,
+	_save_path = SavePath .. "ChatTypingInfo_save.txt",
+	settings = {
+		menus_info_enabled = true,
+		menus_alpha = 0.8,
+		menus_use_alignment_preset = true,
+		menus_alignment_w = 300,
+		menus_alignment_h = 150,
+		menus_alignment_x = 120,
+		menus_alignment_y = 500,
+		menus_font_size = 20,
+		in_game_info_enabled = true,
+		in_game_alpha = 1,
+		in_game_use_alignment_preset = true,
+		in_game_alignment_w = 380,
+		in_game_alignment_h = 180,
+		in_game_alignment_x = 0,
+		in_game_alignment_y = 608,
+		in_game_font_size = 20,
+	}
+}
+
+function ChatTypingInfo:Save()
+	io.save_as_json(ChatTypingInfo.settings, ChatTypingInfo._save_path)
+end
+
+function ChatTypingInfo:Load()
+	local settings = io.file_is_readable(ChatTypingInfo._save_path) and io.load_as_json(ChatTypingInfo._save_path) or {}
+	for k, v in pairs(settings) do
+		ChatTypingInfo.settings[k] = v
+	end
+end
+
+ChatTypingInfo:Load()
+
+function ChatTypingInfo:GetGameState()
+	if not Utils:IsInGameState() then
+		return "menus"
+	else
+		if (BaseNetworkHandler and BaseNetworkHandler._gamestate_filter and BaseNetworkHandler._gamestate_filter.any_ingame_playing) then
+			if BaseNetworkHandler._gamestate_filter.any_ingame_playing[game_state_machine:last_queued_state_name()] == true then
+				return "in_match"
+			else
+				return "pre_game_lobby"
+			end
+		else
+			return "unidentifiable" -- can this even happen?
+		end
+	end
+end
+
+-- "x is typing" text itself
+function ChatTypingInfo:GetTypingWarningText()
 	local text = ""
-	local amount = 0
 	local t = TimerManager:game():time()
 	local ranges = {}
-	for _, peer in pairs(LuaNetworking:GetPeers()) do
-		if peer._last_typing_info_t and t < peer._last_typing_info_t + 4 then
-			text = text .. (amount > 0 and ", " or "")
-			table.insert(ranges, { id = peer:id(), from = utf8.len(text), to = utf8.len(text .. peer:name()) })
-			text = text .. peer:name()
-			amount = amount + 1
-		end
-	end
-	
-	if amount > 0 then
-		local amount_dots = math.floor((t * 2) % 4)
-		text = text .. " " .. (amount > 1 and "are" or "is") .. " typing" .. string.rep(".", amount_dots)
-		if amount > 1 then
-			text = text:gsub("(.*),", "%1 and")
-			ranges[#ranges].from = ranges[#ranges].from + 3
-			ranges[#ranges].to = ranges[#ranges].to + 3
-		end
+	local peers = managers.network and managers.network:session() and managers.network:session():all_peers() or {}
+
+	peers = table.filter(peers, function(peer) return peer and peer._last_typing_info_t and t < peer._last_typing_info_t + 4 end)
+	if #peers == 0 then
+		return text, ranges
 	end
 
-	info_panel_text:set_text(text)
-	for i, range in ipairs(ranges) do
-		info_panel_text:set_range_color(range.from, range.to, tweak_data.chat_colors[range.id])
+	for i, peer in pairs(peers) do
+		if i > 1 and i == #peers then
+			text = text .. " " .. managers.localization:text("ChatTypingInfo_xIsTyping_message_and") .. " "
+		elseif i > 1 then
+			text = text .. ", "
+		end
+		table.insert(ranges, { id = peer:id(), from = utf8.len(text), to = utf8.len(text .. peer:name()) })
+		text = text .. peer:name()
+	end
+
+	local amount_dots = math.floor((t * 2) % 4)
+	local typing_id = #peers > 1 and "ChatTypingInfo_xIsTyping_message_plural" or "ChatTypingInfo_xIsTyping_message_singular"
+	text = text .. " " .. managers.localization:text(typing_id) .. string.rep(".", amount_dots)
+
+	return text, ranges
+end
+
+-- tell others i'm typing
+function ChatTypingInfo:InformPeersAboutTyping(key_pressed)
+	local t = TimerManager:game():time()
+	local valid_key = key_pressed ~= Idstring("enter") and key_pressed ~= Idstring("esc") -- add checks fow windows key and/or alt+tab?
+	if valid_key and (not ChatTypingInfo._last_press_t or t > ChatTypingInfo._last_press_t + 2) then
+		LuaNetworking:SendToPeers("typing_info", "")
+		ChatTypingInfo._last_press_t = t
+	elseif not valid_key then
+		ChatTypingInfo._last_press_t = nil
 	end
 end
 
-Hooks:PostHook(ChatManager, "receive_message_by_peer", "receive_message_by_peer_chat_info", function (self, channel_id, peer)
-	if tonumber(channel_id) == 1 then
-		peer._last_typing_info_t = nil
-	end
-end)
-
-Hooks:PostHook(ChatGui, "init", "init_chat_info", function (self)
-	self._chat_info_text = self._panel:text({
-		name = "info_text",
-		text = "",
-		font = tweak_data.menu.pd2_small_font,
-		font_size = tweak_data.menu.pd2_small_font_size,
-		x = 0,
-		y = 0,
-		w = self._panel:w(),
-		h = 24,
-		color = Color.white,
-		alpha = 0.75,
-		layer = 1
-	})
-	self._chat_info_text:set_left(self._panel:left() + self._input_panel:left() + self._input_panel:child("input_text"):left())
-	self._chat_info_text:set_y(self._panel:h() - self._chat_info_text:h())
-	self._chat_info_text = text
-end)
-
-Hooks:PostHook(ChatGui, "_layout_input_panel", "_layout_input_panel_chat_info", function (self)
-	self._input_panel:set_y(self._input_panel:parent():h() - self._input_panel:h() - 24)
-end)
-
-Hooks:PostHook(ChatGui, "key_press", "key_press_chat_info", function (self, o, k)
-	local t = TimerManager:game():time()
-	local valid_key = k ~= Idstring("enter") and k ~= Idstring("esc")
-	if valid_key and (not self._last_press_t or t > self._last_press_t + 2) then
-		LuaNetworking:SendToPeers("typing_info", "")
-		self._last_press_t = t
-	elseif not valid_key then
-		self._last_press_t = nil
-	end
-end)
-
-Hooks:PostHook(MenuComponentManager, "update", "update_chat_info", function (self, t)
-	if not self._game_chat_gui or self._last_chat_info_update_t and self._last_chat_info_update_t + 0.1 < t then
-		return
-	end
-	self._last_chat_info_update_t = t
-	self._game_chat_gui:update_info_text(t)
-end)
-
-Hooks:Add("NetworkReceivedData", "NetworkReceivedDataTypingInfo", function(sender, id, data)
+-- if received needed network message from peer, add "x is typing" text for them
+Hooks:Add("NetworkReceivedData", "NetworkReceivedData_ChatTypingInfo", function(sender, id, data)
 	local peer = LuaNetworking:GetPeers()[sender]
 	if id == "typing_info" and peer then
 		peer._last_typing_info_t = TimerManager:game():time()
+	end
+end)
+
+-- updater which is ran to check if text needs to be adjusted
+Hooks:PostHook(MenuComponentManager, "update", "ChatTypingInfo_updater", function(self, t)
+
+	-- refresh rate
+	if self._last_chat_typing_info_update_t and self._last_chat_typing_info_update_t + 0.1 < t then
+		return
+	else
+		self._last_chat_typing_info_update_t = t
+	end
+
+	local state = ChatTypingInfo:GetGameState()
+	if state == "menus" or state == "pre_game_lobby" then
+		if not self._game_chat_gui then
+			return
+		end
+		self._game_chat_gui:update_info_text()
+	elseif state == "in_match" then
+		HUDChat:UpdateIngameTypingInfoText()
 	end
 end)
