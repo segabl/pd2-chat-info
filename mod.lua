@@ -116,10 +116,9 @@ Hooks:PostHook(MenuComponentManager, "update", "ChatTypingInfo_updater", functio
 
 	local state = ChatTypingInfo:GetGameState()
 	if state == "menus" or state == "pre_game_lobby" then
-		if not self._game_chat_gui then
-			return
+		if self._game_chat_gui then
+			self._game_chat_gui:update_info_text()
 		end
-		self._game_chat_gui:update_info_text()
 	elseif state == "in_match" then
 		HUDChat:UpdateIngameTypingInfoText()
 	end

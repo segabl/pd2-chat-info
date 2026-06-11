@@ -3,9 +3,10 @@
 	"description" : "Shows if a player using the same mod is typing something in chat",
 	"author" : "Hoppip, irbizzelus",
 	"contact" : "irbizzelus - via steam (link in bio on MWS)",
+	"priority" : -100,
 	"color" : "0.043 0.808 0.6",
 	"image" : "mod.png",
-	"version" : "2.0",
+	"version" : "2.0.1",
 	"updates" : [{
 		"identifier" : "pd2-chat-info",
 		"host": { "meta": "https://updates.hoppip.at/pd2-chat-info" }

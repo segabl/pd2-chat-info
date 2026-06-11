@@ -18,14 +18,14 @@ end)
 
 -- yep
 function ChatGui:update_info_text()
-	local text, ranges = ChatTypingInfo:GetTypingWarningText()
-	local info_panel_text = self._hud_panel:child("info_text")
-	info_panel_text:set_text(text)
+	if not self._chat_info_text then
+		return
+	end
 
-	if next(ranges) ~= nil then
-		for i, range in ipairs(ranges) do
-			info_panel_text:set_range_color(range.from, range.to, tweak_data.chat_colors[range.id])
-		end
+	local text, ranges = ChatTypingInfo:GetTypingWarningText()
+	self._chat_info_text:set_text(text)
+	for _, range in pairs(ranges) do
+		self._chat_info_text:set_range_color(range.from, range.to, tweak_data.chat_colors[range.id])
 	end
 end
 
