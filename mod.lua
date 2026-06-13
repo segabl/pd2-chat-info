@@ -62,7 +62,7 @@ function ChatTypingInfo:GetTypingWarningText()
 	local ranges = {}
 	local peers = managers.network and managers.network:session() and managers.network:session():all_peers() or {}
 
-	peers = table.filter(peers, function(peer) return peer and peer._last_typing_info_t and t < peer._last_typing_info_t + 4 end)
+	peers = table.filter_list(peers, function(peer) return peer and peer._last_typing_info_t and t < peer._last_typing_info_t + 4 end)
 	if #peers == 0 then
 		return text, ranges
 	end
