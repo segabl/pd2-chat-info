@@ -4,6 +4,10 @@ end
 
 -- menus chat stuff
 
+Hooks:PostHook(ChatManager, "init", "init_ChatTypingInfo_post", function()
+	ChatTypingInfo:setup_menu_typing_panel()
+end)
+
 -- if received a message from peer, remove "x is typing" from them. funnily enough this hook is reponsible for all msg recieves, regardless of games state
 Hooks:PostHook(ChatManager, "receive_message_by_peer", "receive_message_by_peer_ChatTypingInfo_post", function(self, channel_id, peer)
 	if tonumber(channel_id) == 1 then
@@ -11,18 +15,16 @@ Hooks:PostHook(ChatManager, "receive_message_by_peer", "receive_message_by_peer_
 	end
 end)
 
--- yep
 Hooks:PostHook(ChatGui, "key_press", "key_press_chat_info", function(self, o, k)
-	ChatTypingInfo:InformPeersAboutTyping(k)
+	ChatTypingInfo:send_typing(k)
 end)
 
--- yep
-function ChatGui:update_info_text()
+function ChatGui:update_typing_text()
 	if not self._chat_info_text then
 		return
 	end
 
-	local text, ranges = ChatTypingInfo:GetTypingWarningText()
+	local text, ranges = ChatTypingInfo:get_typing_text()
 	self._chat_info_text:set_text(text)
 	for _, range in pairs(ranges) do
 		self._chat_info_text:set_range_color(range.from, range.to, tweak_data.chat_colors[range.id])
@@ -78,7 +80,6 @@ Hooks:PostHook(ChatGui, "init", "init_chat_info", function(self)
 	})
 	if ChatTypingInfo.settings.menus_use_alignment_preset then
 		self._chat_info_text:set_left(self._panel:left() + self._input_panel:left() + self._input_panel:child("input_text"):left())
-		--self._chat_info_text = text -- wtf even is this??
 	end
 end)
 
@@ -90,49 +91,3 @@ Hooks:PostHook(ChatGui, "_layout_input_panel", "_layout_input_panel_chat_info", 
 	end
 	self._input_panel:set_y(self._input_panel:parent():h() - self._input_panel:h() - adjust_by)
 end)
-
--- allow for chat adjusting mods to be compatible with this mod by allowing overrides on chat on-screen location, font size etc
--- if you want to add support for this mod you can create a post hook for this function to override appropraite parmaeters, just make sure that your mod's priority is lower then 999
-function ChatTypingInfo:SetupMenuTextPanelProperties()
-
-	ChatTypingInfo.text_panel_menus = {
-		w_override = nil,
-		h_override = nil,
-		x_override = nil,
-		y_override = nil,
-		w_shift = 0,
-		h_shift = 0,
-		x_shift = 0,
-		y_shift = 0,
-		font_size_override = nil
-	}
-
-	if ChatTypingInfo.settings.menus_use_alignment_preset then
-		ChatTypingInfo.text_panel_menus.h_shift = 120
-	else
-		ChatTypingInfo.text_panel_menus.w_override = ChatTypingInfo.settings.menus_alignment_w
-		ChatTypingInfo.text_panel_menus.h_override = ChatTypingInfo.settings.menus_alignment_h
-		ChatTypingInfo.text_panel_menus.x_override = ChatTypingInfo.settings.menus_alignment_x
-		ChatTypingInfo.text_panel_menus.y_override = ChatTypingInfo.settings.menus_alignment_y
-		ChatTypingInfo.text_panel_menus.font_size_override = ChatTypingInfo.settings.menus_font_size
-	end
-
-end
--- run it once on boot
-ChatTypingInfo:SetupMenuTextPanelProperties()
-
--- only called if user is adjusting settings in the mod's menu, resets visuals
-function ChatTypingInfo:UpdateMenuTextPanel()
-
-	-- reset properties
-	ChatTypingInfo:SetupMenuTextPanelProperties()
-
-	-- and if not in game, update already existing panel
-	local state = ChatTypingInfo:GetGameState()
-	if state == "menus" or state == "pre_game_lobby" then
-		if not managers.menu_component._game_chat_gui then
-			return
-		end
-		managers.menu_component._game_chat_gui:update_text_panel_visuals()
-	end
-end

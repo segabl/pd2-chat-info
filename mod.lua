@@ -1,4 +1,3 @@
--- setup
 if ChatTypingInfo then
 	return
 end
@@ -26,37 +25,18 @@ _G.ChatTypingInfo = {
 	}
 }
 
-function ChatTypingInfo:Save()
+function ChatTypingInfo:save()
 	io.save_as_json(ChatTypingInfo.settings, ChatTypingInfo._save_path)
 end
 
-function ChatTypingInfo:Load()
+function ChatTypingInfo:load()
 	local settings = io.file_is_readable(ChatTypingInfo._save_path) and io.load_as_json(ChatTypingInfo._save_path) or {}
 	for k, v in pairs(settings) do
 		ChatTypingInfo.settings[k] = v
 	end
 end
 
-ChatTypingInfo:Load()
-
-function ChatTypingInfo:GetGameState()
-	if not Utils:IsInGameState() then
-		return "menus"
-	else
-		if (BaseNetworkHandler and BaseNetworkHandler._gamestate_filter and BaseNetworkHandler._gamestate_filter.any_ingame_playing) then
-			if BaseNetworkHandler._gamestate_filter.any_ingame_playing[game_state_machine:last_queued_state_name()] == true then
-				return "in_match"
-			else
-				return "pre_game_lobby"
-			end
-		else
-			return "unidentifiable" -- can this even happen?
-		end
-	end
-end
-
--- "x is typing" text itself
-function ChatTypingInfo:GetTypingWarningText()
+function ChatTypingInfo:get_typing_text()
 	local text = ""
 	local t = TimerManager:game():time()
 	local ranges = {}
@@ -84,42 +64,78 @@ function ChatTypingInfo:GetTypingWarningText()
 	return text, ranges
 end
 
--- tell others i'm typing
-function ChatTypingInfo:InformPeersAboutTyping(key_pressed)
+function ChatTypingInfo:send_typing(key_pressed)
 	local t = TimerManager:game():time()
 	local valid_key = key_pressed ~= Idstring("enter") and key_pressed ~= Idstring("esc") -- add checks fow windows key and/or alt+tab?
 	if valid_key and (not ChatTypingInfo._last_press_t or t > ChatTypingInfo._last_press_t + 2) then
-		LuaNetworking:SendToPeers("typing_info", "")
+		NetworkHelper:SendToPeers("typing_info", "")
 		ChatTypingInfo._last_press_t = t
 	elseif not valid_key then
 		ChatTypingInfo._last_press_t = nil
 	end
 end
 
--- if received needed network message from peer, add "x is typing" text for them
-Hooks:Add("NetworkReceivedData", "NetworkReceivedData_ChatTypingInfo", function(sender, id, data)
-	local peer = LuaNetworking:GetPeers()[sender]
-	if id == "typing_info" and peer then
-		peer._last_typing_info_t = TimerManager:game():time()
+-- allow for chat adjusting mods to be compatible with this mod by allowing overrides on chat on-screen location, font size etc
+-- if you want to add support for this mod you can create a post hook for this function to override appropraite parmaeters, just make sure that your mod's priority is lower then 999
+function ChatTypingInfo:setup_menu_typing_panel()
+
+	ChatTypingInfo.text_panel_menus = {
+		w_override = nil,
+		h_override = nil,
+		x_override = nil,
+		y_override = nil,
+		w_shift = 0,
+		h_shift = 0,
+		x_shift = 0,
+		y_shift = 0,
+		font_size_override = nil
+	}
+
+	if ChatTypingInfo.settings.menus_use_alignment_preset then
+		ChatTypingInfo.text_panel_menus.h_shift = 120
+	else
+		ChatTypingInfo.text_panel_menus.w_override = ChatTypingInfo.settings.menus_alignment_w
+		ChatTypingInfo.text_panel_menus.h_override = ChatTypingInfo.settings.menus_alignment_h
+		ChatTypingInfo.text_panel_menus.x_override = ChatTypingInfo.settings.menus_alignment_x
+		ChatTypingInfo.text_panel_menus.y_override = ChatTypingInfo.settings.menus_alignment_y
+		ChatTypingInfo.text_panel_menus.font_size_override = ChatTypingInfo.settings.menus_font_size
 	end
+
+end
+
+-- only called if user is adjusting settings in the mod's menu, resets visuals
+function ChatTypingInfo:update_menu_typing_panel()
+
+	-- reset properties
+	ChatTypingInfo:setup_menu_typing_panel()
+
+	-- and if not in game, update already existing panel
+	if not self:is_ingame() and managers.menu_component._game_chat_gui then
+		managers.menu_component._game_chat_gui:update_text_panel_visuals()
+	end
+end
+
+function ChatTypingInfo:is_ingame()
+	return Utils:IsInHeist() and managers.hud and managers.hud._hud_chat_ingame
+end
+
+ChatTypingInfo:load()
+
+NetworkHelper:AddReceiveHook("typing_info", "typing_info", function(data, sender)
+	local peer = managers.network:session():peer(sender)
+	peer._last_typing_info_t = TimerManager:game():time()
 end)
 
--- updater which is ran to check if text needs to be adjusted
 Hooks:PostHook(MenuComponentManager, "update", "ChatTypingInfo_updater", function(self, t)
-
-	-- refresh rate
-	if self._last_chat_typing_info_update_t and self._last_chat_typing_info_update_t + 0.1 < t then
+	if self._next_typing_update_t and self._next_typing_update_t > t then
 		return
-	else
-		self._last_chat_typing_info_update_t = t
 	end
 
-	local state = ChatTypingInfo:GetGameState()
-	if state == "menus" or state == "pre_game_lobby" then
-		if self._game_chat_gui then
-			self._game_chat_gui:update_info_text()
-		end
-	elseif state == "in_match" then
-		HUDChat:UpdateIngameTypingInfoText()
+	self._next_typing_update_t = t + 0.1
+
+	if ChatTypingInfo:is_ingame() then
+		managers.hud._hud_chat_ingame:update_typing_text()
+	elseif self._game_chat_gui then
+		self._game_chat_gui:update_typing_text()
 	end
 end)

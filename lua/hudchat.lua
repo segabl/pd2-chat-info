@@ -5,20 +5,18 @@ end
 -- in game chat stuff
 
 -- create our panel
-Hooks:PostHook(HUDChat, "init", "ChatTypingInfo_HUDChat_init_post", function(self, ...)
-	self:SetupIngameTypingTextPanelProperties()
+Hooks:PostHook(HUDChat, "init", "ChatTypingInfo_HUDChat_init_post", function(self)
+	self:setup_typing_panel()
 end)
 
 -- report using in game chat to peers
 Hooks:PostHook(HUDChat, "key_press", "chat_info_in_game_chat_key_press_post", function(self, o, k)
-	ChatTypingInfo:InformPeersAboutTyping(k)
+	ChatTypingInfo:send_typing(k)
 end)
 
 -- allow for chat adjusting mods to be compatible with this mod by allowing overrides on chat on-screen location, font size etc
 -- if you want to add support for this mod you can create a post hook for this function to override appropraite parmaeters, just make sure that your mod's priority is lower then 999
-function HUDChat:SetupIngameTypingTextPanelProperties()
-
-	if not HUDChat then return end -- idek, just keep it
+function HUDChat:setup_typing_panel()
 
 	ChatTypingInfo.text_panel_game = {
 		w_override = nil,
@@ -67,73 +65,57 @@ function HUDChat:SetupIngameTypingTextPanelProperties()
 end
 
 -- only called if user is adjusting settings in the mod's menu, responsible for text panel's visuals
-function HUDChat:UpdateIngameTypingTextPanel()
-
+function HUDChat:update_typing_panel()
 	-- reset properties
-	self:SetupIngameTypingTextPanelProperties()
+	self:setup_typing_panel()
 
-	local state = ChatTypingInfo:GetGameState()
-	if state == "in_match" then
-
-		local chat_window = managers.hud._hud_chat_ingame
-		if chat_window then
-			local screen_panel = chat_window._panel:parent()
-			local tpg = ChatTypingInfo.text_panel_game
-			if screen_panel:child("typing_alert") then
-				local panel = screen_panel:child("typing_alert")
-				panel:set_visible(ChatTypingInfo.settings.in_game_info_enabled)
-				panel:set_w(tpg.w_override or (screen_panel:w() + tpg.w_shift))
-				panel:set_h(tpg.h_override or (screen_panel:h() + tpg.h_shift))
-				panel:set_x(tpg.x_override or (screen_panel:x() + tpg.x_shift))
-				panel:set_y(tpg.y_override or (screen_panel:h() + tpg.y_shift))
-				panel:set_alpha(ChatTypingInfo.settings.in_game_alpha or 1)
-				--panel:set_font(tpg.font_override or tweak_data.menu.pd2_small_font) -- evidently cant update font after it was setup without crashes, unless the func is named smth else?
-				panel:set_font_size(tpg.font_size_override or tweak_data.menu.pd2_small_font_size)
-			end
-		end
-
+	local screen_panel = self._panel:parent()
+	local typing_alert = screen_panel:child("typing_alert")
+	local tpg = ChatTypingInfo.text_panel_game
+	if typing_alert then
+		typing_alert:set_visible(ChatTypingInfo.settings.in_game_info_enabled)
+		typing_alert:set_w(tpg.w_override or (screen_panel:w() + tpg.w_shift))
+		typing_alert:set_h(tpg.h_override or (screen_panel:h() + tpg.h_shift))
+		typing_alert:set_x(tpg.x_override or (screen_panel:x() + tpg.x_shift))
+		typing_alert:set_y(tpg.y_override or (screen_panel:h() + tpg.y_shift))
+		typing_alert:set_alpha(ChatTypingInfo.settings.in_game_alpha or 1)
+		--panel:set_font(tpg.font_override or tweak_data.menu.pd2_small_font) -- evidently cant update font after it was setup without crashes, unless the func is named smth else?
+		typing_alert:set_font_size(tpg.font_size_override or tweak_data.menu.pd2_small_font_size)
 	end
 end
 
 -- update panel's text
-function HUDChat:UpdateIngameTypingInfoText()
+function HUDChat:update_typing_text()
 
-	local chat_window = managers.hud._hud_chat_ingame
-	if chat_window then
-		local screen_panel = chat_window._panel:parent()
-		local tpg = ChatTypingInfo.text_panel_game
+	local screen_panel = self._panel:parent()
+	local typing_alert = screen_panel:child("typing_alert")
+	local tpg = ChatTypingInfo.text_panel_game
 
-		-- create our info panel with overrides
-		if not screen_panel:child("typing_alert") then
-			local typing_alert = screen_panel:text({
-				name = "typing_alert",
-				visible = ChatTypingInfo.settings.in_game_info_enabled,
-				text = "",
-				valign = "left",
-				align = "left",
-				layer = 1,
-				color = Color.white,
-				wrap = true,
-				word_wrap = false,
-				alpha = ChatTypingInfo.settings.in_game_alpha or 1,
-				font = tpg.font_override or tweak_data.menu.pd2_small_font,
-				font_size = tpg.font_size_override or tweak_data.menu.pd2_small_font_size,
-				w = tpg.w_override or (screen_panel:w() + tpg.w_shift),
-				h = tpg.h_override or (screen_panel:h() + tpg.h_shift),
-				x = tpg.x_override or (screen_panel:x() + tpg.x_shift),
-				y = tpg.y_override or (screen_panel:h() + tpg.y_shift)
-			})
-		else
-			local text, ranges = ChatTypingInfo:GetTypingWarningText()
-			local info_panel_text = screen_panel:child("typing_alert")
-			info_panel_text:set_text(text)
-
-			if next(ranges) ~= nil then
-				for i, range in ipairs(ranges) do
-					info_panel_text:set_range_color(range.from, range.to, tweak_data.chat_colors[range.id])
-				end
-			end
-		end
+	-- create our info panel with overrides
+	if not typing_alert then
+		typing_alert = screen_panel:text({
+			name = "typing_alert",
+			visible = ChatTypingInfo.settings.in_game_info_enabled,
+			text = "",
+			valign = "left",
+			align = "left",
+			layer = 1,
+			color = Color.white,
+			wrap = true,
+			word_wrap = false,
+			alpha = ChatTypingInfo.settings.in_game_alpha or 1,
+			font = tpg.font_override or tweak_data.menu.pd2_small_font,
+			font_size = tpg.font_size_override or tweak_data.menu.pd2_small_font_size,
+			w = tpg.w_override or (screen_panel:w() + tpg.w_shift),
+			h = tpg.h_override or (screen_panel:h() + tpg.h_shift),
+			x = tpg.x_override or (screen_panel:x() + tpg.x_shift),
+			y = tpg.y_override or (screen_panel:h() + tpg.y_shift)
+		})
 	end
 
+	local text, ranges = ChatTypingInfo:get_typing_text()
+	typing_alert:set_text(text)
+	for i, range in ipairs(ranges) do
+		typing_alert:set_range_color(range.from, range.to, tweak_data.chat_colors[range.id])
+	end
 end

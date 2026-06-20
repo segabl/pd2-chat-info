@@ -8,35 +8,29 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 
 	MenuHelper:NewMenu(menu_id)
 
-	MenuCallbackHandler.ChatTypingInfo_save = function(this, item)
-		ChatTypingInfo:Save()
-	end
-
-	MenuCallbackHandler.ChatTypingInfo_donothing = function(this, item)
-		-- warm, primordial blackness
+	function MenuCallbackHandler:ChatTypingInfo_save()
+		ChatTypingInfo:save()
 	end
 
 	local menu_slider_alpha, menu_alignment_preset, menu_slider_w, menu_slider_h, menu_slider_x, menu_slider_y, menu_slider_font
 	local game_slider_alpha, game_alignment_preset, game_slider_w, game_slider_h, game_slider_x, game_slider_y, game_slider_font
 
-	MenuCallbackHandler.ChatTypingInfo_slider_menu = function(this, item)
+	function MenuCallbackHandler:ChatTypingInfo_slider_menu(item)
 		ChatTypingInfo.settings[string.sub(item:name(), 16, -1)] = item:value() -- cursed, but im too lazy to rename all the toggle/slider menu items
-		ChatTypingInfo:Save()
-		ChatTypingInfo:UpdateMenuTextPanel()
-		local state = ChatTypingInfo:GetGameState()
-		if (state == "menus" or state == "pre_game_lobby") and managers.network and managers.network:session() and managers.network:session():local_peer() then
+		ChatTypingInfo:update_menu_typing_panel()
+		if managers.network and managers.network:session() and managers.network:session():local_peer() then
 			managers.network:session():local_peer()._last_typing_info_t = TimerManager:game():time() -- preview the text while customizing it
 		end
 	end
 
-	MenuCallbackHandler.ChatTypingInfo_toggle_menu = function(this, item)
+	function MenuCallbackHandler:ChatTypingInfo_toggle_menu(item)
 		local param = string.sub(item:name(), 16, -1)
 		ChatTypingInfo.settings[param] = item:value() == "on"
-		ChatTypingInfo:Save()
-		ChatTypingInfo:UpdateMenuTextPanel()
-		local state = ChatTypingInfo:GetGameState()
-		if (state == "menus" or state == "pre_game_lobby") and managers.network and managers.network:session() and managers.network:session():local_peer() then
-			managers.network:session():local_peer()._last_typing_info_t = TimerManager:game():time()
+		if not ChatTypingInfo:is_ingame() then
+			ChatTypingInfo:update_menu_typing_panel()
+			if managers.network and managers.network:session() and managers.network:session():local_peer() then
+				managers.network:session():local_peer()._last_typing_info_t = TimerManager:game():time()
+			end
 		end
 		-- disable certain options to make it simpler for the end user
 		local function update_custom_options(toggle)
@@ -60,27 +54,23 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		end
 	end
 
-	MenuCallbackHandler.ChatTypingInfo_slider_ingame = function(this, item)
+	function MenuCallbackHandler:ChatTypingInfo_slider_ingame(item)
 		ChatTypingInfo.settings[string.sub(item:name(), 16, -1)] = item:value()
-		ChatTypingInfo:Save()
-		if managers.hud and managers.hud._hud_chat_ingame then
-			managers.hud._hud_chat_ingame:UpdateIngameTypingTextPanel()
-		end
-		local state = ChatTypingInfo:GetGameState()
-		if state == "in_match" and managers.network and managers.network:session() and managers.network:session():local_peer() then
-			managers.network:session():local_peer()._last_typing_info_t = TimerManager:game():time()
+		if ChatTypingInfo:is_ingame() then
+			managers.hud._hud_chat_ingame:update_typing_panel()
+			if managers.network and managers.network:session() and managers.network:session():local_peer() then
+				managers.network:session():local_peer()._last_typing_info_t = TimerManager:game():time()
+			end
 		end
 	end
 
-	MenuCallbackHandler.ChatTypingInfo_toggle_ingame = function(this, item)
+	function MenuCallbackHandler:ChatTypingInfo_toggle_ingame(item)
 		local param = string.sub(item:name(), 16, -1)
 		ChatTypingInfo.settings[param] = item:value() == "on"
-		ChatTypingInfo:Save()
-		if managers.hud and managers.hud._hud_chat_ingame then
-			managers.hud._hud_chat_ingame:UpdateIngameTypingTextPanel()
+		if ChatTypingInfo:is_ingame() then
+			managers.hud._hud_chat_ingame:update_typing_panel()
 		end
-		local state = ChatTypingInfo:GetGameState()
-		if state == "in_match" and managers.network and managers.network:session() and managers.network:session():local_peer() then
+		if managers.network and managers.network:session() and managers.network:session():local_peer() then
 			managers.network:session():local_peer()._last_typing_info_t = TimerManager:game():time()
 		end
 		-- same shit as with menu options
@@ -125,8 +115,6 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		max = 1,
 		step = 0.01,
 		show_value = true,
-		-- display_precision = 0.01,
-		-- display_scale = 0.01,
 		menu_id = menu_id,
 		priority = 99
 	})
@@ -157,8 +145,6 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		max = 500,
 		step = 0.1,
 		show_value = true,
-		-- display_precision = 0.1,
-		-- display_scale = 0.01,
 		menu_id = menu_id,
 		priority = 97
 	})
@@ -174,8 +160,6 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		max = 500,
 		step = 0.1,
 		show_value = true,
-		-- display_precision = 0.1,
-		-- display_scale = 0.01,
 		menu_id = menu_id,
 		priority = 96
 	})
@@ -191,8 +175,6 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		max = 1500,
 		step = 1,
 		show_value = true,
-		-- display_precision = 1,
-		-- display_scale = 1,
 		menu_id = menu_id,
 		priority = 95
 	})
@@ -208,8 +190,6 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		max = 1500,
 		step = 1,
 		show_value = true,
-		-- display_precision = 1,
-		-- display_scale = 1,
 		menu_id = menu_id,
 		priority = 94
 	})
@@ -225,8 +205,6 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		max = 128,
 		step = 1,
 		show_value = true,
-		-- display_precision = 1,
-		-- display_scale = 1,
 		menu_id = menu_id,
 		priority = 93
 	})
@@ -259,8 +237,6 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		max = 1,
 		step = 0.01,
 		show_value = true,
-		-- display_precision = 0.01,
-		-- display_scale = 0.01,
 		menu_id = menu_id,
 		priority = 90
 	})
@@ -291,8 +267,6 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		max = 500,
 		step = 0.1,
 		show_value = true,
-		-- display_precision = 0.1,
-		-- display_scale = 0.01,
 		menu_id = menu_id,
 		priority = 88
 	})
@@ -308,8 +282,6 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		max = 500,
 		step = 0.1,
 		show_value = true,
-		-- display_precision = 0.1,
-		-- display_scale = 0.01,
 		menu_id = menu_id,
 		priority = 87
 	})
@@ -325,8 +297,6 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		max = 1500,
 		step = 1,
 		show_value = true,
-		-- display_precision = 1,
-		-- display_scale = 1,
 		menu_id = menu_id,
 		priority = 86
 	})
@@ -342,8 +312,6 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		max = 1500,
 		step = 1,
 		show_value = true,
-		-- display_precision = 1,
-		-- display_scale = 1,
 		menu_id = menu_id,
 		priority = 85
 	})
@@ -359,8 +327,6 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 		max = 128,
 		step = 1,
 		show_value = true,
-		-- display_precision = 1,
-		-- display_scale = 1,
 		menu_id = menu_id,
 		priority = 84
 	})
@@ -369,7 +335,6 @@ Hooks:Add("MenuManagerBuildCustomMenus", "MenuManagerBuildCustomMenus_ChatTyping
 	MenuHelper:AddMenuItem(nodes.blt_options, menu_id, "ChatTypingInfo_title")
 end)
 
--- locs
 Hooks:Add("LocalizationManagerPostInit", "ChatTypingInfo_option_loc", function(loc)
 	local chosen_language = BLT.Localization:get_language().language
 	if not io.file_is_readable(ChatTypingInfo._path .. "loc/" .. chosen_language .. ".json") then
