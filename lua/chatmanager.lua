@@ -91,3 +91,23 @@ Hooks:PostHook(ChatGui, "_layout_input_panel", "_layout_input_panel_chat_info", 
 	end
 	self._input_panel:set_y(self._input_panel:parent():h() - self._input_panel:h() - adjust_by)
 end)
+
+-- visibility adjustments
+Hooks:PostHook(ChatGui, "set_enabled", "chat_info_close_typing_MENUchat_set_enabled", function(self, enabled)
+	local typing_panel = self._chat_info_text
+	if typing_panel then
+		if not enabled then
+			typing_panel:set_text("")
+			typing_panel:set_visible(false)
+		else
+			typing_panel:set_visible(ChatTypingInfo.settings.menus_info_enabled)
+		end
+	end
+end)
+Hooks:PostHook(ChatGui, "close", "chat_info_close_typing_MENUchat_close", function(self, ...)
+	local typing_panel = self._chat_info_text
+	if typing_panel then
+		typing_panel:set_text("")
+		typing_panel:set_visible(false)
+	end
+end)
