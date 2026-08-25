@@ -119,3 +119,12 @@ function HUDChat:update_typing_text()
 		typing_alert:set_range_color(range.from, range.to, tweak_data.chat_colors[range.id])
 	end
 end
+
+-- visibility adjustment
+Hooks:PostHook(HUDChat, "remove", "chat_info_close_typing_HUDchat", function(self, ...)
+	local typing_panel = self._panel and self._panel:parent() and self._panel:parent():child("typing_alert")
+	if typing_panel then
+		typing_panel:set_text("")
+		typing_panel:set_visible(false)
+	end
+end)
